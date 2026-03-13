@@ -1,8 +1,8 @@
 """
 Train a BERT classifier for self-introduction detection.
 
-Running this script fine-tunes `bert-base-uncased` on the milestone 3 CSV
-and saves the model/tokenizer bundle to `milestone3_bert_self_intro`.
+Running this script fine-tunes `bert-base-uncased` on the NER Legislative Labeled Dataset - labeling_batch_v1.csv
+and saves the model/tokenizer bundle to `bert_self_intro_classifier`.
 """
 
 import random
