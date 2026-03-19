@@ -1,0 +1,15 @@
+BERT self-intro comparison
+========================================
+Random-initialized BERT classifier (untrained)
+  Accuracy:  0.8063
+  Precision: 0.0000
+  Recall:    0.0000
+  F1:        0.0000
+  TN=483  FP=0  FN=116  TP=0
+
+Fine-tuned self-intro BERT classifier
+  Accuracy:  0.9900
+  Precision: 0.9583
+  Recall:    0.9914
+  F1:        0.9746
+  TN=478  FP=5  FN=1  TP=115

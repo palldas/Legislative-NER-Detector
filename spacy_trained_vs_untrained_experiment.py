@@ -1,18 +1,16 @@
 """
-Compare a blank spaCy pipeline against the trained legislative spaCy model.
+This experiment compares a blank spaCy pipeline against our trained legislative spaCy model.
 
 Metrics:
 - Accuracy: exact-set match accuracy per row
-- Precision / Recall / F1: micro-averaged over extracted PERSON names
+- Precision / Recall / F1: macro-averaged over extracted PERSON names
 """
 
 from __future__ import annotations
-
 import argparse
 import csv
 import re
 from pathlib import Path
-
 import spacy
 
 
