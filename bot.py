@@ -6,22 +6,16 @@ import threading
 import random
 import json
 import os
+import subprocess
 from pathlib import Path
 import re
-import spacy
-
-try:
-    spacy.cli.download("en_core_web_trf")
-    nlp = spacy.load("en_core_web_trf")
-except OSError:
-    print("Warning: spaCy model 'en_core_web_trf' not found. Phrase 3 name extraction will fail until installed.")
-    nlp = None
 
 LABEL_MAP = {
     0: "non-self-intro",
     1: "self-intro",
 }
 MAX_CHUNK_TOKENS = 510
+PERSON_LABEL = "PERSON"
 
 TITLES = re.compile(
     r"\b(Mr|Mrs|Ms|Miss|Dr|Prof|Professor|Senator|Sen|"
@@ -40,6 +34,7 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         self.lock = threading.RLock()
         self.timeout_timer = None
         self.model_dir = self.resolve_model_dir()
+        self.spacy_model_dir = self.resolve_spacy_model_dir()
         self.classifier = None
 
     def on_nicknameinuse(self, c, e):
@@ -79,6 +74,10 @@ class ChatBot(irc.bot.SingleServerIRCBot):
     def resolve_model_dir(self):
         bot_root = Path(__file__).resolve().parent
         return bot_root / "bert_self_intro_classifier"
+
+    def resolve_spacy_model_dir(self):
+        bot_root = Path(__file__).resolve().parent
+        return bot_root / "spacy_legislative_ner"
 
     def load_bert_classifier(self, model_dir):
         try:
@@ -160,15 +159,49 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         name = name.strip(".,;:")
         return name
 
+    def extract_person_names_with_spacy(self, text):
+        script = (
+            "import json, spacy, sys\n"
+            f"nlp = spacy.load(r'{self.spacy_model_dir}')\n"
+            "doc = nlp(sys.stdin.read())\n"
+            "names = [ent.text for ent in doc.ents if ent.label_ == 'PERSON']\n"
+            "print(json.dumps(names))\n"
+        )
+
+        try:
+            result = subprocess.run(
+                [sys.executable, "-c", script],
+                input=text,
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=30,
+            )
+        except (
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+            OSError,
+        ) as ex:
+            print(f"spaCy name detector unavailable: {ex}")
+            return set()
+
+        try:
+            raw_names = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            print("spaCy name detector returned invalid JSON output.")
+            return set()
+
+        names = set()
+        for name in raw_names:
+            normalized = self.normalize_name(name)
+            if normalized and len(normalized) > 1:
+                names.add(normalized)
+        return names
+
     def extract_names_and_speaker(self, text):
         names = set()
-        if nlp:
-            doc = nlp(text)
-            for ent in doc.ents:
-                if ent.label_ == "PERSON":
-                    n = self.normalize_name(ent.text)
-                    if n and len(n) > 1:
-                        names.add(n)
+        if self.spacy_model_dir.exists():
+            names = self.extract_person_names_with_spacy(text)
         
         speaker = None
         lower_text = text.lower()
@@ -258,7 +291,7 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         elif normalized in ["who are you?", "usage"]:
             msg1 = f"My name is {c.get_nickname()}. I was created by {self.creator_info}"
             msg2 = 'Use "classify <text>" or address me with any message to run our legislative self-intro and name extraction classifier.'
-            msg3 = 'Kasey implemented the BERT self-intro classifier, and Pallavi implemented the spaCy Speaker Name Extraction.'
+            msg3 = 'Kasey implemented the BERT self-intro classifier, and Pallavi implemented the spaCy legislative name extractor.'
             self.send_delayed_msg(target, f"{sender}: {msg1}")
             self.send_delayed_msg(target, f"{sender}: {msg2}")
             self.send_delayed_msg(target, f"{sender}: {msg3}")

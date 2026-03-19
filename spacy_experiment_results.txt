@@ -1,0 +1,18 @@
+Loaded 599 rows from NER Legislative Labeled Dataset - labeling_batch_v1.csv
+
+spaCy NER comparison
+========================================
+Blank spaCy pipeline (untrained)
+  Accuracy:  0.4457
+  Precision: 0.0000
+  Recall:    0.0000
+  F1:        0.0000
+  TP=0  FP=0  FN=786
+
+Trained legislative spaCy model
+  Accuracy:  0.9015
+  Precision: 0.9377
+  Recall:    0.9377
+  F1:        0.9377
+  TP=737  FP=49  FN=49
+
