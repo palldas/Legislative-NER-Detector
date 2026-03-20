@@ -131,12 +131,24 @@ def train_model(
     dev_examples: list[tuple[str, dict]],
     output_dir: Path,
     iterations: int,
+    base_model: str = "en_core_web_trf",
 ) -> Path:
-    nlp = spacy.blank("en")
-    ner = nlp.add_pipe("ner")
+    print(f"Loading base model: {base_model}")
+    nlp = spacy.load(base_model)
+
+    if "ner" in nlp.pipe_names:
+        ner = nlp.get_pipe("ner")
+    else:
+        ner = nlp.add_pipe("ner")
     ner.add_label(LABEL)
 
-    optimizer = nlp.begin_training()
+    # Freeze non-NER components that don't feed into the NER pipeline
+    keep_pipes = {"ner", "transformer"}
+    frozen = [name for name in nlp.pipe_names if name not in keep_pipes]
+    if frozen:
+        print(f"Freezing components: {frozen}")
+
+    optimizer = nlp.resume_training()
 
     for epoch in range(iterations):
         random.shuffle(train_examples)
@@ -148,32 +160,72 @@ def train_model(
             for text, annotations in batch:
                 doc = nlp.make_doc(text)
                 batch_examples.append(Example.from_dict(doc, annotations))
-            nlp.update(batch_examples, sgd=optimizer, drop=0.2, losses=losses)
+            nlp.update(
+                batch_examples,
+                sgd=optimizer,
+                drop=0.2,
+                losses=losses,
+                exclude=frozen,
+            )
 
         print(f"Epoch {epoch + 1}/{iterations} - losses: {losses}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     nlp.to_disk(output_dir)
-    print(f"Saved trained spaCy model to {output_dir}")
+    print(f"Saved fine-tuned spaCy model to {output_dir}")
 
     if dev_examples:
-        scores = evaluate_model(nlp, dev_examples)
+        precision, recall, f1 = evaluate_person_only(nlp, dev_examples)
         print(
-            "Dev set scores - "
-            f"precision: {scores['ents_p']:.3f}, "
-            f"recall: {scores['ents_r']:.3f}, "
-            f"f1: {scores['ents_f']:.3f}"
+            "Dev set scores (PERSON only) - "
+            f"precision: {precision:.3f}, "
+            f"recall: {recall:.3f}, "
+            f"f1: {f1:.3f}"
         )
 
     return output_dir
 
 
-def evaluate_model(nlp, examples: list[tuple[str, dict]]) -> dict:
-    scored = []
+def evaluate_person_only(
+    nlp, examples: list[tuple[str, dict]]
+) -> tuple[float, float, float]:
+    # Evaluate NER performance on PERSON entities using name-level matching
+    tp = 0
+    fp = 0
+    fn = 0
+
+    def _normalize_for_eval(name: str) -> str:
+        name = TITLES.sub("", name).strip()
+        name = re.sub(r"[''']s$", "", name)
+        name = name.strip(".,;:() ")
+        return re.sub(r"\s+", " ", name).lower()
+
     for text, annotations in examples:
-        doc = nlp.make_doc(text)
-        scored.append(Example.from_dict(doc, annotations))
-    return nlp.evaluate(scored)
+        doc = nlp(text)
+
+        pred_names = set()
+        for ent in doc.ents:
+            if ent.label_ == LABEL:
+                n = _normalize_for_eval(ent.text)
+                if n and len(n) > 1:
+                    pred_names.add(n)
+
+        # Gold PERSON names (normalized from spans)
+        gold_names = set()
+        for start, end, label in annotations.get("entities", []):
+            if label == LABEL:
+                n = _normalize_for_eval(text[start:end])
+                if n and len(n) > 1:
+                    gold_names.add(n)
+
+        tp += len(pred_names & gold_names)
+        fp += len(pred_names - gold_names)
+        fn += len(gold_names - pred_names)
+
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return precision, recall, f1
 
 
 def main() -> None:
@@ -182,6 +234,12 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=MODEL_DIR)
     parser.add_argument("--iterations", type=int, default=20)
     parser.add_argument("--dev-ratio", type=float, default=0.2)
+    parser.add_argument(
+        "--base-model",
+        type=str,
+        default="en_core_web_trf",
+        help="Pre-trained spaCy model to fine-tune (default: en_core_web_trf)",
+    )
     args = parser.parse_args()
 
     fix_random_seed(RANDOM_SEED)
@@ -198,7 +256,9 @@ def main() -> None:
         f"Training on {len(train_examples)} examples, "
         f"evaluating on {len(dev_examples)} examples."
     )
-    train_model(train_examples, dev_examples, args.output, args.iterations)
+    train_model(
+        train_examples, dev_examples, args.output, args.iterations, args.base_model
+    )
 
 
 if __name__ == "__main__":

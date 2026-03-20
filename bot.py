@@ -36,6 +36,9 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         self.model_dir = self.resolve_model_dir()
         self.spacy_model_dir = self.resolve_spacy_model_dir()
         self.classifier = None
+        # Buffer for multi-part classify messages
+        self.classify_buffer = {}
+        self.classify_timers = {}
 
     def on_nicknameinuse(self, c, e):
         c.nick(c.get_nickname() + "_")
@@ -51,11 +54,33 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         print(f"[{self.channel_name}] {sender}: {msg}")
         prefix = c.get_nickname() + ":"
         
+        if sender in self.classify_buffer and not msg.lower().startswith(prefix.lower()):
+            self._append_to_classify_buffer(sender, " " + msg)
+            return
+        
         if msg.lower().startswith(prefix.lower()):
             text = msg[len(prefix):].strip()
             command = text.lower()
             if self.is_command(command):
                 self.do_command(e, text, c)
+
+    def _append_to_classify_buffer(self, sender, text):
+        with self.lock:
+            self.classify_buffer[sender] = self.classify_buffer.get(sender, "") + text
+            if sender in self.classify_timers:
+                self.classify_timers[sender].cancel()
+            timer = threading.Timer(2.0, self._flush_classify_buffer, args=[sender])
+            timer.daemon = True
+            timer.start()
+            self.classify_timers[sender] = timer
+
+    def _flush_classify_buffer(self, sender):
+        with self.lock:
+            full_text = self.classify_buffer.pop(sender, "")
+            self.classify_timers.pop(sender, None)
+        if full_text.strip():
+            print(f"[buffer] Processing full classify text from {sender} ({len(full_text)} chars)")
+            self.handle_classifier_message(sender, full_text.strip())
 
     def send_delayed_msg(self, target, msg, delay=2):
         def delayed_send():
@@ -313,7 +338,7 @@ class ChatBot(irc.bot.SingleServerIRCBot):
                 )
                 return
             
-            self.handle_classifier_message(sender, text)
+            self._append_to_classify_buffer(sender, text)
 
 
 if __name__ == "__main__":

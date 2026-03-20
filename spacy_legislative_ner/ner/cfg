@@ -1,13 +1,3 @@
-{
-  "moves":null,
-  "update_with_oracle_cut_size":100,
-  "multitasks":[
-
-  ],
-  "min_action_freq":1,
-  "learn_tokens":false,
-  "beam_width":1,
-  "beam_density":0.0,
-  "beam_update_prob":0.0,
-  "incorrect_spans_key":null
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+size 221
