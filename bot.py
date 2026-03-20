@@ -36,6 +36,7 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         self.model_dir = self.resolve_model_dir()
         self.spacy_model_dir = self.resolve_spacy_model_dir()
         self.classifier = None
+        self.spacy_nlp = None
         # Buffer for multi-part classify messages
         self.classify_buffer = {}
         self.classify_timers = {}
@@ -133,6 +134,15 @@ class ChatBot(irc.bot.SingleServerIRCBot):
             print(f"Failed to load BERT classifier from {model_dir}: {ex}")
             return None
 
+    def load_spacy_model(self):
+        try:
+            import spacy
+            print(f"Loading spaCy model from {self.spacy_model_dir}...")
+            return spacy.load(self.spacy_model_dir)
+        except Exception as ex:
+            print(f"Failed to load spaCy model: {ex}")
+            return None
+
     def predict_chunk(self, chunk_text):
         bundle = self.classifier
         torch = bundle["torch"]
@@ -185,43 +195,24 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         return name
 
     def extract_person_names_with_spacy(self, text):
-        script = (
-            "import json, spacy, sys\n"
-            f"nlp = spacy.load(r'{self.spacy_model_dir}')\n"
-            "doc = nlp(sys.stdin.read())\n"
-            "names = [ent.text for ent in doc.ents if ent.label_ == 'PERSON']\n"
-            "print(json.dumps(names))\n"
-        )
-
-        try:
-            result = subprocess.run(
-                [sys.executable, "-c", script],
-                input=text,
-                text=True,
-                capture_output=True,
-                check=True,
-                timeout=30,
-            )
-        except (
-            subprocess.CalledProcessError,
-            subprocess.TimeoutExpired,
-            OSError,
-        ) as ex:
-            print(f"spaCy name detector unavailable: {ex}")
+        if self.spacy_nlp is None:
+            self.spacy_nlp = self.load_spacy_model()
+        if not self.spacy_nlp:
             return set()
 
         try:
-            raw_names = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            print("spaCy name detector returned invalid JSON output.")
+            doc = self.spacy_nlp(text)
+            names = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
+        except Exception as ex:
+            print(f"spaCy inference failed: {ex}")
             return set()
 
-        names = set()
-        for name in raw_names:
+        processed_names = set()
+        for name in names:
             normalized = self.normalize_name(name)
             if normalized and len(normalized) > 1:
-                names.add(normalized)
-        return names
+                processed_names.add(normalized)
+        return processed_names
 
     def extract_names_and_speaker(self, text):
         names = set()
@@ -230,7 +221,7 @@ class ChatBot(irc.bot.SingleServerIRCBot):
         
         speaker = None
         lower_text = text.lower()
-        trigger_phrases = ["my name is ", "i'm ", "i am ", "this is "]
+        trigger_phrases = ["my name is ", "my name's ", "i'm ", "i am ", "this is "]
         
         for name in names:
             name_lower = name.lower()
@@ -315,8 +306,8 @@ class ChatBot(irc.bot.SingleServerIRCBot):
             
         elif normalized in ["who are you?", "usage"]:
             msg1 = f"My name is {c.get_nickname()}. I was created by {self.creator_info}"
-            msg2 = 'Use "classify <text>" or address me with any message to run our legislative self-intro and name extraction classifier.'
-            msg3 = 'Kasey implemented the BERT self-intro classifier, and Pallavi implemented the spaCy legislative name extractor.'
+            msg2 = 'Use "classify <text>" to run our legislative self-intro and name extraction classifier.'
+            msg3 = 'Kasey implemented the BERT self-intro classifier, and Pallavi implemented the finetuned spaCy legislative NER model.'
             self.send_delayed_msg(target, f"{sender}: {msg1}")
             self.send_delayed_msg(target, f"{sender}: {msg2}")
             self.send_delayed_msg(target, f"{sender}: {msg3}")
