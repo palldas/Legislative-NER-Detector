@@ -6,6 +6,14 @@
 
 Before running the code, make sure to download the DH2024_Corpus_Release folder from Hugging Face: https://huggingface.co/datasets/iatpp/digitaldemocracy-2015-2018/blob/main/DH2024_Corpus_Release.zip
 
+Install the following:
+- `python3 -m pip install --user --break-system-packages "numpy<2"`
+- `python3 -m pip install --user --break-system-packages pandas scikit-learn irc`
+- `python3 -m pip install --user --break-system-packages torch torchvision`
+- `python3 -m pip install --user --break-system-packages "transformers==4.48.1"`
+- `python3 -m pip install --user --break-system-packages spacy`
+- `python3 -m spacy download en_core_web_trf`
+
 To run our IRC bot interface, run `python3 bot.py`.
 
 Our bot.py uses the trained models in this directory, but to retrain, run the following:
