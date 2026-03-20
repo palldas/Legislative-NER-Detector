@@ -1,15 +1,11 @@
 """
-Milestone 2 — Baseline NER & Self-Introduction Detection Experiment
+Milestone 2 - Baseline NER & Self-Introduction Detection Experiment
 
-Evaluates four off-the-shelf baselines on the labeled legislative
-transcript dataset (599 rows):
-
-  Baseline 1: spaCy NER  (en_core_web_sm → PERSON entities)
-  Baseline 2: names-dataset  (lexicon lookup of first/last names)
-  Baseline 3: NLTK NER  (ne_chunk → PERSON entities)
-  Baseline 4: Regex self-introduction detector
-
-Metrics: precision, recall, F1 for name extraction and intro detection.
+We tried 4 baselines in this milestone on our labeled dataset:
+Baseline 1: spaCy NER (en_core_web_sm -> PERSON entities)
+Baseline 2: names-dataset (lexicon lookup of first/last names)
+Baseline 3: NLTK NER (ne_chunk -> PERSON entities)
+Baseline 4: Regex self-introduction detector
 """
 
 import re
@@ -53,7 +49,6 @@ TITLES = re.compile(
 )
 
 def parse_gold_names(raw: str) -> set:
-    """Parse pipe-separated gold label names into a normalized set."""
     if not raw or pd.isna(raw):
         return set()
     names = set()
@@ -64,16 +59,12 @@ def parse_gold_names(raw: str) -> set:
     return names
 
 def normalize_name(name: str) -> str:
-    """Strip titles and extra whitespace."""
     name = TITLES.sub("", name).strip()
-    # Remove trailing periods / commas
     name = name.strip(".,;:")
     return name.lower()
 
 # spaCy NER
-print("=" * 60)
-print("BASELINE 1: spaCy NER (en_core_web_sm → PERSON)")
-print("=" * 60)
+print("BASELINE 1: spaCy NER (en_core_web_sm -> PERSON)")
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -93,8 +84,7 @@ nd = NameDataset()
 print("done.")
 
 def names_dataset_extract(text: str) -> set:
-    """Check each token and bigram against first/last name databases."""
-    tokens = re.findall(r"[A-Z][a-z]+(?:-[A-Z][a-z]+)*", text)  # capitalized words
+    tokens = re.findall(r"[A-Z][a-z]+(?:-[A-Z][a-z]+)*", text)
     names = set()
 
     for tok in tokens:
@@ -112,7 +102,6 @@ def names_dataset_extract(text: str) -> set:
 print("\nBaseline 3: NLTK NER")
 
 def nltk_extract_names(text: str) -> set:
-    """Use NLTK's ne_chunk to extract PERSON entities."""
     names = set()
     try:
         tokens = word_tokenize(text)
@@ -196,13 +185,13 @@ def evaluate_name_extraction(pred_list, gold_list, label):
     micro_f1 = 2 * micro_p * micro_r / (micro_p + micro_r) if (micro_p + micro_r) > 0 else 0
 
     print(f"  {label}")
-    print(f"    Micro-Precision: {micro_p:.4f}")
-    print(f"    Micro-Recall:    {micro_r:.4f}")
-    print(f"    Micro-F1:        {micro_f1:.4f}")
-    print(f"    Macro-Precision: {np.mean(precisions):.4f}")
-    print(f"    Macro-Recall:    {np.mean(recalls):.4f}")
-    print(f"    Macro-F1:        {np.mean(f1s):.4f}")
-    print(f"    Total TP={tp_total}  FP={fp_total}  FN={fn_total}")
+    print(f"Micro-Precision: {micro_p:.4f}")
+    print(f"Micro-Recall: {micro_r:.4f}")
+    print(f"Micro-F1: {micro_f1:.4f}")
+    print(f"Macro-Precision: {np.mean(precisions):.4f}")
+    print(f"Macro-Recall: {np.mean(recalls):.4f}")
+    print(f"Macro-F1: {np.mean(f1s):.4f}")
+    print(f"Total TP={tp_total}  FP={fp_total}  FN={fn_total}")
     print()
 
     return {
@@ -216,36 +205,30 @@ def evaluate_name_extraction(pred_list, gold_list, label):
 
 gold_names = [parse_gold_names(row["all_names"]) for _, row in df.iterrows()]
 
-print("=" * 60)
 print("NAME EXTRACTION RESULTS")
-print("=" * 60)
 
 results_spacy = evaluate_name_extraction(spacy_preds, gold_names, "spaCy NER")
 results_nd = evaluate_name_extraction(nd_preds, gold_names, "names-dataset Lookup")
 results_nltk = evaluate_name_extraction(nltk_preds, gold_names, "NLTK NER")
 
 # evaluation - self-introduction detection
-print("=" * 60)
 print("SELF-INTRODUCTION DETECTION RESULTS")
-print("=" * 60)
 
 gold_intro = df["is_self_intro"].tolist()
 
 print("\n  Regex Self-Intro Detector:")
-print(f"    Accuracy:  {accuracy_score(gold_intro, regex_intro_preds):.4f}")
-print(f"    Precision: {precision_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
-print(f"    Recall:    {recall_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
-print(f"    F1:        {f1_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
-print(f"\n    Confusion Matrix:")
+print(f"Accuracy: {accuracy_score(gold_intro, regex_intro_preds):.4f}")
+print(f"Precision: {precision_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
+print(f"Recall: {recall_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
+print(f"F1: {f1_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
+print(f"\nConfusion Matrix:")
 cm = confusion_matrix(gold_intro, regex_intro_preds)
-print(f"      TN={cm[0][0]}  FP={cm[0][1]}")
-print(f"      FN={cm[1][0]}  TP={cm[1][1]}")
+print(f"TN={cm[0][0]}  FP={cm[0][1]}")
+print(f"FN={cm[1][0]}  TP={cm[1][1]}")
 print()
 
 # error analysis - sample errors
-print("=" * 60)
 print("ERROR ANALYSIS — spaCy NER (sample)")
-print("=" * 60)
 
 error_count = 0
 for i, (pred, gold) in enumerate(zip(spacy_preds, gold_names)):
@@ -255,11 +238,11 @@ for i, (pred, gold) in enumerate(zip(spacy_preds, gold_names)):
         if error_count < 10:
             text_snippet = str(df.iloc[i]["text"])[:120]
             print(f"\n  Row {i} (sid={df.iloc[i]['sid']}):")
-            print(f"    Text: {text_snippet}...")
-            print(f"    Gold:      {gold if gold else '{}'}")
-            print(f"    Predicted: {pred if pred else '{}'}")
-            if fp: print(f"    FALSE POS: {fp}")
-            if fn: print(f"    FALSE NEG: {fn}")
+            print(f"Text: {text_snippet}...")
+            print(f"Gold: {gold if gold else '{}'}")
+            print(f"Predicted: {pred if pred else '{}'}")
+            if fp: print(f"FALSE POS: {fp}")
+            if fn: print(f"FALSE NEG: {fn}")
             error_count += 1
 
 print(f"\n  (Showing {min(error_count, 10)} of total error rows)")
@@ -267,7 +250,6 @@ print(f"\n  (Showing {min(error_count, 10)} of total error rows)")
 
 output_lines = []
 output_lines.append("MILESTONE 2 — BASELINE EXPERIMENT RESULTS")
-output_lines.append("=" * 50)
 output_lines.append(f"\nDataset: {len(df)} rows, {df['is_self_intro'].sum()} self-intros, "
                      f"{(df['all_names'] != '').sum()} rows with names\n")
 
@@ -278,17 +260,16 @@ output_lines.append(summary_table.to_string(index=False))
 
 output_lines.append("\n\n--- SELF-INTRODUCTION DETECTION ---\n")
 output_lines.append(f"Regex Detector:")
-output_lines.append(f"  Accuracy:  {accuracy_score(gold_intro, regex_intro_preds):.4f}")
-output_lines.append(f"  Precision: {precision_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
-output_lines.append(f"  Recall:    {recall_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
-output_lines.append(f"  F1:        {f1_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
+output_lines.append(f"Accuracy: {accuracy_score(gold_intro, regex_intro_preds):.4f}")
+output_lines.append(f"Precision: {precision_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
+output_lines.append(f"Recall: {recall_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
+output_lines.append(f"F1: {f1_score(gold_intro, regex_intro_preds, zero_division=0):.4f}")
 output_lines.append(f"\nConfusion Matrix:")
-output_lines.append(f"  TN={cm[0][0]}  FP={cm[0][1]}")
-output_lines.append(f"  FN={cm[1][0]}  TP={cm[1][1]}")
+output_lines.append(f"TN={cm[0][0]}  FP={cm[0][1]}")
+output_lines.append(f"FN={cm[1][0]}  TP={cm[1][1]}")
 
 results_file = "baseline_results.txt"
 with open(results_file, "w") as f:
     f.write("\n".join(output_lines))
 
 print(f"\n\nResults saved to {results_file}")
-print("Done!")

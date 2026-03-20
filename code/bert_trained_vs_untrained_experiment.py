@@ -104,12 +104,12 @@ def compute_binary_metrics(gold: list[int], pred: list[int]) -> dict[str, float]
 
 def print_metrics(label: str, metrics: dict[str, float]) -> None:
     print(label)
-    print(f"  Accuracy:  {metrics['accuracy']:.4f}")
-    print(f"  Precision: {metrics['precision']:.4f}")
-    print(f"  Recall:    {metrics['recall']:.4f}")
-    print(f"  F1:        {metrics['f1']:.4f}")
+    print(f"Accuracy: {metrics['accuracy']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall: {metrics['recall']:.4f}")
+    print(f"F1: {metrics['f1']:.4f}")
     print(
-        f"  TN={int(metrics['tn'])}  FP={int(metrics['fp'])}  "
+        f"TN={int(metrics['tn'])}  FP={int(metrics['fp'])}  "
         f"FN={int(metrics['fn'])}  TP={int(metrics['tp'])}"
     )
     print()
@@ -143,7 +143,6 @@ def main() -> None:
 
     print()
     print("BERT self-intro comparison")
-    print("=" * 40)
     print_metrics("Random-initialized BERT classifier (untrained)", untrained_metrics)
     print_metrics("Fine-tuned self-intro BERT classifier", trained_metrics)
 

@@ -1,5 +1,5 @@
-BERT self-intro comparison
-========================================
+BERT self-intro comparison:
+
 Random-initialized BERT classifier (untrained)
   Accuracy:  0.8063
   Precision: 0.0000
