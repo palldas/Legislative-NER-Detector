@@ -99,11 +99,11 @@ class ChatBot(irc.bot.SingleServerIRCBot):
 
     def resolve_model_dir(self):
         bot_root = Path(__file__).resolve().parent
-        return bot_root / "bert_self_intro_classifier"
+        return bot_root / "models" / "bert_self_intro_classifier"
 
     def resolve_spacy_model_dir(self):
         bot_root = Path(__file__).resolve().parent
-        return bot_root / "spacy_legislative_ner"
+        return bot_root / "models" / "spacy_legislative_ner"
 
     def load_bert_classifier(self, model_dir):
         try:

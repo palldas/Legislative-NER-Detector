@@ -40,9 +40,13 @@ except ModuleNotFoundError:
     )
 
 
-CSV_PATH = Path("NER Legislative Labeled Dataset - labeling_batch_v1.csv")
+CODE_ROOT = Path(__file__).resolve().parent
+DATA_ROOT = CODE_ROOT / "data"
+MODELS_ROOT = CODE_ROOT / "models"
+
+CSV_PATH = DATA_ROOT / "NER Legislative Labeled Dataset - labeling_batch_v1.csv"
 MODEL_NAME = "bert-base-uncased"
-MODEL_SAVE_DIR = Path("bert_self_intro_classifier")
+MODEL_SAVE_DIR = MODELS_ROOT / "bert_self_intro_classifier"
 RANDOM_SEED = 42
 TEST_SIZE = 0.20
 MAX_LEN = 256
@@ -88,7 +92,7 @@ def load_dataset() -> pd.DataFrame:
     if not CSV_PATH.exists():
         raise SystemExit(
             "Dataset not found: 'NER Legislative Labeled Dataset - labeling_batch_v1.csv'\n"
-            "Place the CSV in the project root and rerun."
+            f"Expected location: {CSV_PATH}"
         )
 
     df = pd.read_csv(CSV_PATH)

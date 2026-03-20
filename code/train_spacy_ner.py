@@ -18,8 +18,12 @@ from spacy.training import Example
 from spacy.util import compounding, fix_random_seed, minibatch
 
 
-CSV_PATH = Path("NER Legislative Labeled Dataset - labeling_batch_v1.csv")
-MODEL_DIR = Path("spacy_legislative_ner")
+CODE_ROOT = Path(__file__).resolve().parent
+DATA_ROOT = CODE_ROOT / "data"
+MODELS_ROOT = CODE_ROOT / "models"
+
+CSV_PATH = DATA_ROOT / "NER Legislative Labeled Dataset - labeling_batch_v1.csv"
+MODEL_DIR = MODELS_ROOT / "spacy_legislative_ner"
 LABEL = "PERSON"
 RANDOM_SEED = 42
 
@@ -91,7 +95,7 @@ def find_name_spans(text: str, names: list[str]) -> list[tuple[int, int, str]]:
 def load_training_examples(csv_path: Path) -> list[tuple[str, dict]]:
     if not csv_path.exists():
         raise FileNotFoundError(
-            "Dataset not found: 'NER Legislative Labeled Dataset - labeling_batch_v1.csv'"
+            f"Dataset not found at expected location: {csv_path}"
         )
 
     examples = []

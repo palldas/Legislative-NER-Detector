@@ -14,6 +14,7 @@ Metrics: precision, recall, F1 for name extraction and intro detection.
 
 import re
 import warnings
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import spacy
@@ -28,7 +29,10 @@ from sklearn.metrics import (
 
 warnings.filterwarnings("ignore")
 
-CSV_PATH = "NER Legislative Labeled Dataset - labeling_batch_v1.csv"
+CODE_ROOT = Path(__file__).resolve().parent
+DATA_ROOT = CODE_ROOT / "data"
+
+CSV_PATH = DATA_ROOT / "NER Legislative Labeled Dataset - labeling_batch_v1.csv"
 df = pd.read_csv(CSV_PATH)
 df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
 df["all_names"] = df["all_names"].fillna("")

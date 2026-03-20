@@ -22,8 +22,12 @@ from transformers import (
 )
 
 
-CSV_PATH = Path("NER Legislative Labeled Dataset - labeling_batch_v1.csv")
-TRAINED_MODEL_DIR = Path("bert_self_intro_classifier")
+CODE_ROOT = Path(__file__).resolve().parent
+DATA_ROOT = CODE_ROOT / "data"
+MODELS_ROOT = CODE_ROOT / "models"
+
+CSV_PATH = DATA_ROOT / "NER Legislative Labeled Dataset - labeling_batch_v1.csv"
+TRAINED_MODEL_DIR = MODELS_ROOT / "bert_self_intro_classifier"
 MAX_LEN = 256
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

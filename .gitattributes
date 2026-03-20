@@ -2,3 +2,4 @@
 spacy_legislative_ner/** filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
+code/models/** filter=lfs diff=lfs merge=lfs -text
