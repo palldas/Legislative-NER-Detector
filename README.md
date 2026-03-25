@@ -1,7 +1,6 @@
 # Legislative NER Detector
 
 - Pallavi Das, Kasey Liu
-- CSC 482 Final Project
 
 This file describes the environment and setup required to run the Legislative NER Detector project.
 
